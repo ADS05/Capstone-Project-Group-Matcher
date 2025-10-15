@@ -1,0 +1,50 @@
+# === PYTHON BASICS ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pkl
+*.sqlite3
+*.db
+
+# === ENVIRONMENTS ===
+.env
+.venv/
+venv/
+ENV/
+env/
+*.env
+credentials.json
+
+# === CREDENTIALS & KEYS ===
+# Never commit service account keys, secrets, or config files with sensitive data
+credentials.json
+service_account.json
+token.json
+secrets.json
+client_secret.json
+
+# === LOGS ===
+*.log
+logs/
+debug.log
+
+# === OS / IDE FILES ===
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# === OUTPUT FILES ===
+*.csv
+*.xlsx
+*.json
+output/
+results/
+data/
+*.tmp
+
+# === TESTING / NOTEBOOKS ===
+.ipynb_checkpoints/
+*.ipynb
