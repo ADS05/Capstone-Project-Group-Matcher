@@ -23,6 +23,7 @@ service_account.json
 token.json
 secrets.json
 client_secret.json
+capstone-project-group-matcher-*.json
 
 # === LOGS ===
 *.log

@@ -1,5 +1,5 @@
 from student import Student
-from google_client import get_sheet_data
+from google_client import get_sheet_data, write_team_results
 import itertools
 from itertools import combinations
 import math
@@ -197,6 +197,16 @@ def main():
 
     teams = form_teams(students)
     print_teams(teams)
+    
+    # Export results to Google Sheets
+    print("\n=== Exporting to Google Sheets ===")
+    success = write_team_results(teams, "Team Matching Results")
+    
+    if success:
+        print("✅ Successfully exported team matching results to Google Sheets!")
+    else:
+        print("❌ Failed to export results to Google Sheets.")
+        print("Please check your Google Sheets credentials and permissions.")
 
 
 if __name__ == "__main__":
