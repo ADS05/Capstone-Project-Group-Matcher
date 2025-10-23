@@ -1,17 +1,6 @@
-# Sprint MVP - Capstone Team Matcher
+# 🎯 Capstone Team Matcher
 
 A Python application that matches students into capstone project teams based on their survey responses, skills, preferences, and compatibility. The system reads student data from Google Sheets and exports organized team matching results to a separate spreadsheet for faculty review.
-
-## Features
-
-- **Google Sheets Integration**: Reads student survey data from Google Sheets
-- **Smart Team Matching**: Uses compatibility scoring based on:
-  - Project preference similarity
-  - Mutual teammate preferences  
-  - Skills compatibility
-  - Availability matching
-- **Organized Results Export**: Writes formatted team assignments to a separate Google Sheet
-- **Faculty-Friendly Output**: Each team is displayed in its own section with detailed member information
 
 ## Setup
 
@@ -32,24 +21,66 @@ pip install -r requirements.txt
    - `RESULTS_SPREADSHEET_ID`: Your results spreadsheet (write access)
 2. Ensure the service account has **Editor** access to the results spreadsheet
 
-### 4. Run the Application
+## 🚀 Quick Start
+
+### **Demo Mode (Default)**
 ```bash
-python src/main.py
+python3 src/main.py
 ```
+- Shows automatic team matching
+- Displays compatibility scores and warnings
+- Automatically exports to Google Sheets
+- Perfect for demonstrations
 
-## Output
+### **Interactive Mode (Faculty Use)**
+```bash
+python3 src/main.py --interactive
+```
+- Full interactive terminal interface
+- Faculty can manually adjust teams
+- Real-time compatibility scoring
+- Manual export when satisfied
 
-The application will:
-1. Read student survey data from the survey spreadsheet
-2. Create optimized teams based on compatibility scoring
-3. Export organized results to the "Team Matching Results" tab in your results spreadsheet
-4. Display team summaries in the terminal
+## 🎯 Interactive Commands
 
-## Results Format
+When running in interactive mode, faculty can use:
+
+| Command | Function | Example |
+|---------|-----------|----------|
+| **`l`** | List all teams | Shows: "Team 1 (score=0.717): Harry Kim, Violet York" |
+| **`m`** | Move student | Prompts: "Student name?", "From team?", "To team?" |
+| **`s`** | Show scores | Recalculates and displays all team scores |
+| **`w`** | Check warnings | Shows teams with compatibility < 0.45 |
+| **`d`** | Done & export | Finalizes teams and exports to Google Sheets |
+| **`q`** | Quit | Exits without saving changes |
+
+## 📊 Faculty Workflow
+
+1. **Run the program**: `python3 src/main.py --interactive`
+2. **Review initial teams**: System shows automatically generated teams
+3. **Make adjustments**: Use `m` to move students if needed
+4. **Check compatibility**: Use `w` to see warnings
+5. **Finalize**: Use `d` to export final teams to Google Sheets
+
+## 🔧 Features
+
+- ✅ **Automatic Team Matching**: AI-powered compatibility scoring
+- ✅ **Manual Override**: Faculty can adjust teams as needed
+- ✅ **Real-time Scoring**: See compatibility scores update after changes
+- ✅ **Warning System**: Alerts for problematic team combinations
+- ✅ **Google Sheets Export**: Saves organized results for faculty review
+- ✅ **Project Assignment**: Each team gets a unique project
+- ✅ **Smart Team Matching**: Uses compatibility scoring based on:
+  - Project preference similarity
+  - Mutual teammate preferences  
+  - Skills compatibility
+  - Availability matching
+
+## 📋 Output Format
 
 The exported Google Sheet includes:
-- **Team sections**: Each team displayed in its own organized section
-- **Member details**: Name, email, skills, project preferences, availability
+- **Team sections**: Each team in its own organized section
+- **Member details**: Name, email, skills, preferences, availability
 - **Compatibility scores**: Team compatibility ratings
 - **Project assignments**: Unique project assigned to each team
 - **Timestamp**: When the matching was performed
@@ -61,3 +92,7 @@ The exported Google Sheet includes:
 - `src/student.py` - Student data model
 - `src/config.py` - Configuration settings
 - `requirements.txt` - Python dependencies
+
+## 🎯 Perfect for Demos!
+
+The system is production-ready and perfect for your capstone demo! 🚀

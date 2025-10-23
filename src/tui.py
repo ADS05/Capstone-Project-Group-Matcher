@@ -21,7 +21,7 @@ If curses is available you can later upgrade to a full-screen UI; this module is
 from __future__ import annotations
 from typing import List, Dict, Tuple
 import statistics
-from src.ml_matching import AIMatcher, compute_team_features
+from ml_matching import AIMatcher, compute_team_features
 
 
 LOW_SCORE_THRESHOLD = 0.45  # warn on teams scoring below this after manual changes
@@ -59,41 +59,63 @@ def move_student(teams: List[List[object]], student_name: str, from_idx: int, to
     team_to.append(team_from.pop(pos))
     return True
 
-def interactive_loop(teams: List[List[object]]) -> None:
-    print("\n--- Manual Team Adjustment TUI ---")
-    print("Controls: l=list, m=move, s=scores, w=warnings, q=quit")
-    scores = recalc_scores(teams)
-    print(list_teams(teams, scores))
+def interactive_loop(original_teams, team_lists: List[List[object]]) -> None:
+    """Interactive loop with enhanced commands including 'done' option"""
+    scores = recalc_scores(team_lists)
+    print(list_teams(team_lists, scores))
 
     while True:
-        cmd = input("\nCommand (l/m/s/w/q): ").strip().lower()
+        cmd = input("\nCommand (l/m/s/w/d/q): ").strip().lower()
         if cmd == "q":
+            print("Exiting without saving changes.")
             break
+        elif cmd == "d":
+            print("\n" + "="*50)
+            print("✅ FINALIZING TEAM ASSIGNMENTS")
+            print("="*50)
+            print("Exporting final teams to Google Sheets...")
+            return True  # Signal to export
         elif cmd == "l":
-            print(list_teams(teams, scores))
+            print(list_teams(team_lists, scores))
         elif cmd == "s":
-            scores = recalc_scores(teams)
-            print(list_teams(teams, scores))
+            scores = recalc_scores(team_lists)
+            print(list_teams(team_lists, scores))
         elif cmd == "w":
-            scores = recalc_scores(teams)
-            for w in warn_low_scores(teams, scores):
-                print(w)
-            if not warn_low_scores(teams, scores):
-                print("No warnings.")
+            scores = recalc_scores(team_lists)
+            warnings = warn_low_scores(team_lists, scores)
+            if warnings:
+                print("⚠️  Compatibility Warnings:")
+                for w in warnings:
+                    print(f"   {w}")
+            else:
+                print("✅ No compatibility warnings - all teams look good!")
         elif cmd == "m":
             try:
-                name = input("Student name to move: ").strip()
+                print("\nAvailable students:")
+                for i, team in enumerate(team_lists):
+                    print(f"  Team {i+1}: {', '.join(getattr(s, 'name', '?') for s in team)}")
+                
+                name = input("\nStudent name to move: ").strip()
                 from_team = int(input("From team number: ")) - 1
                 to_team = int(input("To team number: ")) - 1
-                ok = move_student(teams, name, from_team, to_team)
+                
+                ok = move_student(team_lists, name, from_team, to_team)
                 if not ok:
-                    print("Move failed (check names/team numbers).")
+                    print("❌ Move failed (check names/team numbers).")
                 else:
-                    scores = recalc_scores(teams)
-                    print("Moved.\n" + list_teams(teams, scores))
-                    for w in warn_low_scores(teams, scores):
-                        print(w)
+                    scores = recalc_scores(team_lists)
+                    print("✅ Moved successfully!")
+                    print(list_teams(team_lists, scores))
+                    
+                    # Check for warnings after move
+                    warnings = warn_low_scores(team_lists, scores)
+                    if warnings:
+                        print("\n⚠️  Warnings after move:")
+                        for w in warnings:
+                            print(f"   {w}")
             except Exception as e:
-                print("Invalid input.", e)
+                print(f"❌ Invalid input: {e}")
         else:
-            print("Unknown command.")
+            print("❌ Unknown command. Use: l=list, m=move, s=scores, w=warnings, d=done, q=quit")
+    
+    return False  # No export

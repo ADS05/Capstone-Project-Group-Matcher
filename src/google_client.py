@@ -11,7 +11,7 @@ results to a Google Sheet. If not configured, it falls back to reading/writing l
 from __future__ import annotations
 import csv, os, datetime
 from typing import List, Dict, Any
-from src.config import SURVEY_SPREADSHEET_ID, RESULTS_SPREADSHEET_ID, GOOGLE_APPLICATION_CREDENTIALS
+from config import SURVEY_SPREADSHEET_ID, RESULTS_SPREADSHEET_ID, GOOGLE_APPLICATION_CREDENTIALS
 
 
 # Try to import google API, but allow fallback
@@ -70,37 +70,111 @@ def write_team_results(teams: List[list], sheet_name: str = "Team Matching Resul
     """
     Writes organized team results to Google Sheets if configured, otherwise to CSV at src/data/team_results.csv
     """
-    rows = []
-    now = datetime.datetime.now().isoformat(timespec="seconds")
-    for i, team in enumerate(teams, start=1):
-        rows.append([f"Team {i}", "", "", f"Generated at {now}"])
-        rows.append(["Name", "Email", "Skills (avg)", "Availability", "Workstyle", "Meeting Pref"])
-        for s in team:
-            skills = getattr(s, "skills", {}) or {}
-            avg_skill = round(sum(skills.values())/len(skills), 2) if skills else 0
-            rows.append([getattr(s,"name",""), getattr(s,"email",""), avg_skill, getattr(s,"availability",""),
-                         getattr(s,"workstyle",""), getattr(s,"meeting_pref","")])
-        rows.append(["", "", "", ""])
+    from datetime import datetime
+    
+    # Prepare organized data
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    all_data = []
+    
+    # Add header with timestamp
+    all_data.append([f"Capstone Team Matching Results - Generated: {timestamp}"])
+    all_data.append([])  # Empty row
+    
+    for team_num, team in enumerate(teams, 1):
+        # Team header
+        all_data.append([f"TEAM {team_num} - PROJECT {team.get('project', 'N/A')} - Compatibility: {team.get('compatibility', 'N/A')}"])
+        all_data.append([])  # Empty row
+        
+        # Team member details
+        for member in team['members']:
+            # Member name and email
+            all_data.append([f"👤 {member.name} ({member.email})"])
+            
+            # Skills breakdown
+            skills_str = f"Frontend: {member.skills['frontend']}/5, Backend: {member.skills['backend']}/5, Database: {member.skills['database']}/5, Testing: {member.skills['testing']}/5"
+            all_data.append([f"   Skills: {skills_str}"])
+            
+            # Project preferences
+            project_prefs = []
+            for i, rank in enumerate(member.project_ranks):
+                if rank > 0:
+                    project_prefs.append(f"Project {i+1} (Rank {rank})")
+            all_data.append([f"   Project Preferences: {', '.join(project_prefs) if project_prefs else 'None specified'}"])
+            
+            # Availability and preferences
+            all_data.append([f"   Availability: {member.availability} hours/week"])
+            all_data.append([f"   Workstyle: {member.workstyle}"])
+            all_data.append([f"   Meeting Preference: {member.meeting_pref}"])
+            
+            # Teammate preferences
+            teammate_prefs = [pref for pref in member.teammate_ranks if pref.strip()]
+            if teammate_prefs:
+                all_data.append([f"   Preferred Teammates: {', '.join(teammate_prefs[:3])}{'...' if len(teammate_prefs) > 3 else ''}"])
+            
+            all_data.append([])  # Empty row after each member
+        
+        all_data.append(["─" * 50])  # Separator line
+        all_data.append([])  # Empty row after each team
 
     if GOOGLE_OK and os.path.isfile(GOOGLE_APPLICATION_CREDENTIALS) and RESULTS_SPREADSHEET_ID != "YOUR_RESULTS_SPREADSHEET_ID_HERE":
         try:
             _, service = _creds_and_service()
             sheet = service.spreadsheets()
-            body = {"values": rows}
-            sheet.values().update(
-                spreadsheetId=RESULTS_SPREADSHEET_ID,
-                range=f"'{sheet_name}'!A1",
-                valueInputOption="RAW",
-                body=body
-            ).execute()
-            return True
-        except Exception:
-            pass
+            
+            # Create the new sheet
+            try:
+                # Check if sheet already exists
+                spreadsheet = sheet.get(spreadsheetId=RESULTS_SPREADSHEET_ID).execute()
+                existing_sheets = [s['properties']['title'] for s in spreadsheet['sheets']]
+                
+                if sheet_name in existing_sheets:
+                    print(f"Sheet '{sheet_name}' already exists. Updating...")
+                else:
+                    # Create new sheet
+                    add_sheet_request = {
+                        'addSheet': {
+                            'properties': {
+                                'title': sheet_name
+                            }
+                        }
+                    }
+                    sheet.batchUpdate(
+                        spreadsheetId=RESULTS_SPREADSHEET_ID,
+                        body={'requests': [add_sheet_request]}
+                    ).execute()
+                    print(f"Created new sheet: {sheet_name}")
+            except Exception as e:
+                print(f"Error creating/accessing sheet: {e}")
+                return False
+            
+            # Write data to sheet
+            try:
+                range_name = f"{sheet_name}!A1"
+                body = {'values': all_data}
+                
+                result = sheet.values().update(
+                    spreadsheetId=RESULTS_SPREADSHEET_ID,
+                    range=range_name,
+                    valueInputOption='RAW',
+                    body=body
+                ).execute()
+                
+                print(f"Successfully wrote organized team results to {sheet_name}")
+                return True
+                
+            except Exception as e:
+                print(f"Error writing to sheet: {e}")
+                return False
+                
+        except Exception as e:
+            print(f"Google Sheets error: {e}")
+            return False
 
     # Fallback CSV
     os.makedirs(DATA_DIR, exist_ok=True)
     out_csv = os.path.join(DATA_DIR, "team_results.csv")
     with open(out_csv, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerows(rows)
+        writer.writerows(all_data)
+    print(f"Fallback: Saved results to {out_csv}")
     return True
