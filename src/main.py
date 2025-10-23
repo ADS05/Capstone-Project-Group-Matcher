@@ -179,8 +179,6 @@ def form_teams(students, num_projects=5):
     return teams
 
 def print_teams(teams):
-    """Print teams in the original format"""
-    print("\n=== Final Teams ===")
     for i, t in enumerate(teams, start=1):
         print(f"\nTeam {i} | Project {t['project']} | Compatibility: {t['compatibility']}")
         for m in t["members"]:
@@ -212,28 +210,11 @@ def main():
     print(f"Fetched {len(students)} valid survey responses.")
     if not students:
         return
-    
-    # Debug: Check first student
-    if students:
-        first_student = students[0]
-        print(f"Debug - First student: name='{first_student.name}', email='{first_student.email}'")
-        print(f"Debug - Headers: {headers[:5]}...")  # Show first 5 headers
 
     # Use original team formation algorithm
     teams = form_teams(students)
-    print_teams(teams)
     
     # --- Feature 9: Interactive Manual TUI adjustments ---
-    print("\n" + "="*60)
-    print("🎯 MANUAL TEAM ADJUSTMENT INTERFACE")
-    print("="*60)
-    print("The system has created initial teams. You can now:")
-    print("• Move students between teams")
-    print("• Check compatibility scores") 
-    print("• Get warnings for problematic teams")
-    print("• Export final results when satisfied")
-    print("\nCommands: l=list, m=move, s=scores, w=warnings, d=done & export, q=quit")
-    print("="*60)
     
     # Convert teams format for TUI
     team_lists = [team["members"] for team in teams]
@@ -244,17 +225,23 @@ def main():
     
     if interactive_mode:
         # Run full interactive TUI
-        should_export = interactive_loop(teams, team_lists)
-    else:
-        # Demo mode - show capabilities without interactive input
-        print("\n🎯 INTERACTIVE WORKFLOW DEMO:")
-        print("To enable full interactive mode, run: python3 src/main.py --interactive")
+        print("\n🎯 INTERACTIVE WORKFLOW ACTIVATED:")
         print("\nIn interactive mode, faculty can use commands like:")
         print("  • 'l' to list teams")
-        print("  • 'm' to move students") 
+        print("  • 'm' to move students")
+        print("  • 's' to show scores") 
         print("  • 'w' to check warnings")
         print("  • 'd' to finalize and export")
         print("  • 'q' to quit without saving")
+        print(" ")
+        print("Curent Groups and AI-Computed Compatibility Scores:")
+        print(" ")
+        should_export = interactive_loop(teams, team_lists)
+
+    else:
+        # Demo mode - show capabilities without interactive input
+        print("\n🎯 INTERACTIVE WORKFLOW NOT ACTIVATED:")
+        print("To enable full interactive mode, run: python3 src/main.py --interactive")
         
         # Simulate the workflow
         print("\n📋 Current teams with AI compatibility scores:")
@@ -270,9 +257,6 @@ def main():
                 print(f"   {w}")
         else:
             print("\n✅ No compatibility warnings - all teams look good!")
-        
-        print("\n🎯 Faculty can now make manual adjustments if needed...")
-        print("(Use --interactive flag for full interactive mode)")
         
         # Simulate finalizing
         should_export = True  # Simulate faculty choosing to export

@@ -70,10 +70,7 @@ def interactive_loop(original_teams, team_lists: List[List[object]]) -> None:
             print("Exiting without saving changes.")
             break
         elif cmd == "d":
-            print("\n" + "="*50)
-            print("✅ FINALIZING TEAM ASSIGNMENTS")
-            print("="*50)
-            print("Exporting final teams to Google Sheets...")
+            print("")
             return True  # Signal to export
         elif cmd == "l":
             print(list_teams(team_lists, scores))
