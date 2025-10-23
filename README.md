@@ -1,3 +1,9 @@
+## Capstone Team Matcher
+
+Team RaiderSoft — Isabella Cooper, Austin Skelton, Ricky Reisner
+
+Building smarter, friendlier teams — one match at a time.
+
 # 🎯 Capstone Team Matcher
 
 A Python application that matches students into capstone project teams based on their survey responses, skills, preferences, and compatibility. The system reads student data from Google Sheets and exports organized team matching results to a separate spreadsheet for faculty review.
@@ -93,6 +99,77 @@ The exported Google Sheet includes:
 - `src/config.py` - Configuration settings
 - `requirements.txt` - Python dependencies
 
-## 🎯 Perfect for Demos!
 
-The system is production-ready and perfect for your capstone demo! 🚀
+
+## Project Goal
+
+Automatically form balanced capstone project teams based on skills, preferences, and availability.
+
+Powered by an AI compatibility model that scores team cohesion and balance.
+
+Current Working Features
+
+Reads survey data from Google Sheets
+
+Forms five balanced teams automatically
+
+Displays team results in the terminal
+
+Exports team data to Google Sheets (once credentials are set)
+
+## Planned or Partial Features
+
+Dynamic team resizing (ensuring all projects have members)
+
+Drag-and-drop team editing in GUI
+
+Automatic synchronization to Google Sheets after edits
+
+Live dashboard visualization of teams
+
+Instructor “approve & rebalance” mode
+
+Uses AI compatibility scoring
+
+## Demo Flow Overview
+
+Load student survey data from Google Sheets
+
+Groups are created with optimal balance
+
+Results displayed in terminal and exported
+
+Instructor review and final adjustments
+
+AI Compatibility Model
+
+The model compares skills, project preferences, and availability to predict compatibility.
+
+Factors considered:
+
+Skill overlap and diversity
+
+Matching project interest ranks
+
+Similar work styles and meeting preferences
+
+Output:
+A score between 0 and 1 representing team harmony.
+
+## Next Steps and Improvements
+
+Implement team editing and rebalance logic
+
+Expand training data for AI model
+
+Improve export formatting in Sheets
+
+Add instructor approval workflow
+
+Create visual dashboard for quick feedback
+
+## Takeaways
+
+The Capstone Team Matcher simplifies project group formation.
+It supports fair, data-driven team creation, improves collaboration,
+and demonstrates how AI can enhance academic coordination.
