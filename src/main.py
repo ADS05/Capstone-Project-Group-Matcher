@@ -1,11 +1,10 @@
+from __future__ import annotations
+from typing import List, Dict, Any
 from student import Student
 from google_client import get_sheet_data, write_team_results
-import itertools
-from itertools import combinations
-import math
-from statistics import mean
-import statistics
-import random
+from ml_matching import AIMatcher, compute_team_features
+from tui import interactive_loop
+
 
 # --- Utility converters ---
 def safe_int(value, default=0):
@@ -20,44 +19,49 @@ def safe_float(value, default=0.0):
     except (ValueError, TypeError):
         return default
 
-# --- Parsing students from Google Sheet ---
 def parse_students(headers, rows):
+    """Parse students from Google Sheets data using original format"""
     students = []
     col = {name: idx for idx, name in enumerate(headers)}
 
     for row in rows:
         try:
+            # Safely get cell value
             get = lambda key: row[col[key]].strip() if key in col and len(row) > col[key] else ""
 
-            name = get("First and Last Name")
-            email = get("Email")
+            name = get("first and last name")
+            email = get("email")
 
+            # Project rankings (handle blanks)
             project_ranks = [
-                safe_int(get("Ranking for Project 1")),
-                safe_int(get("Ranking for Project 2")),
-                safe_int(get("Ranking for Project 3")),
-                safe_int(get("Ranking for Project 4")),
-                safe_int(get("Ranking for Project 5")),
+                safe_int(get("ranking for project 1 (1 for lowest rank - 5 for highest rank)")),
+                safe_int(get("ranking for project 2")),
+                safe_int(get("ranking for project 3")),
+                safe_int(get("ranking for project 4")),
+                safe_int(get("ranking for project 5")),
             ]
 
+            # Teammate preferences (handle alternate field names)
             teammate_ranks = [
-                get(f"{n} Teammate Choice") or get(f"{n} Teammate Choice (First and Last Name)(short answer)") 
+                get(f"{n} teammate choice") or get(f"{n} teammate choice (first and last name)(short answer)") 
                 for n in [
-                    "First", "Second", "Third", "Fourth", "Fifth",
-                    "Sixth", "Seventh", "Eighth", "Nineth", "Tenth"
+                    "first", "second", "third", "fourth", "fifth",
+                    "sixth", "seventh", "eighth", "nineth", "tenth"
                 ]
             ]
 
+            # Skills (handle blanks)
             skills = {
-                "frontend": safe_int(get("Skills: Frontend Development ( 1 for Beginner - 5 for Expert )")),
-                "backend": safe_int(get("Skills: Backend Development")),
-                "database": safe_int(get("Skills: Database")),
-                "testing": safe_int(get("Skills: Testing")),
+                "frontend": safe_int(get("skills: frontend development ( 1 for beginner - 5 for expert )")),
+                "backend": safe_int(get("skills: backend development")),
+                "database": safe_int(get("skills: database")),
+                "testing": safe_int(get("skills: testing")),
             }
 
-            availability = safe_float(get("Hours Available (short answer)"))
-            workstyle = get("Workstyle")
-            meeting_pref = get("Meeting Preference")
+            # Availability, workstyle, meeting preference
+            availability = safe_float(get("hours available (short answer)"))
+            workstyle = get("workstyle")
+            meeting_pref = get("meeting preference")
 
             students.append(Student(
                 name, email, project_ranks, teammate_ranks, skills,
@@ -68,7 +72,6 @@ def parse_students(headers, rows):
             print(f"Error parsing row: {e}")
 
     return students
-
 
 # --- Compatibility Scoring ---
 def compute_compatibility(s1, s2):
@@ -104,9 +107,11 @@ def compute_compatibility(s1, s2):
 
     return round(total, 2)
 
-
 def form_teams(students, num_projects=5):
     """Form exactly num_projects teams (2–3 members) maximizing compatibility with unique projects."""
+    from itertools import combinations
+    import random
+    
     n = len(students)
     if n < num_projects * 2:
         raise ValueError(f"Not enough students ({n}) for {num_projects} projects.")
@@ -153,14 +158,14 @@ def form_teams(students, num_projects=5):
     project_scores = []
     for t in teams:
         avg_scores = [
-            sum(5 - s.project_ranks[i] for s in t["members"]) / len(t["members"])
+            sum(s.project_ranks[i] for s in t["members"]) / len(t["members"])
             for i in range(num_projects)
         ]
         project_scores.append(avg_scores)
 
     assigned_projects = set()
     for t in teams:
-        # Pick highest-ranked project that’s still unassigned
+        # Pick highest-ranked project that's still unassigned
         scores = project_scores.pop(0)
         best_project = None
         best_value = -1
@@ -173,41 +178,117 @@ def form_teams(students, num_projects=5):
 
     return teams
 
-
-
-
-
-# --- Display ---
 def print_teams(teams):
-    print("\n=== Final Teams ===")
     for i, t in enumerate(teams, start=1):
         print(f"\nTeam {i} | Project {t['project']} | Compatibility: {t['compatibility']}")
         for m in t["members"]:
             print(f" - {m.name} ({m.email})")
 
-
-# --- Main ---
 def main():
-    headers, rows = get_sheet_data()
-    students = parse_students(headers, rows)
+    # Fetch and parse student data
+    rows = get_sheet_data()
+    if not rows:
+        print("No survey data found.")
+        return
+    
+    # Convert dict format to headers/rows format for parse_students
+    if isinstance(rows, list) and len(rows) > 0 and isinstance(rows[0], dict):
+        # Convert dict format to headers/rows format
+        headers = list(rows[0].keys())
+        rows_data = []
+        for row_dict in rows:
+            row_list = []
+            for header in headers:
+                row_list.append(row_dict.get(header, ""))
+            rows_data.append(row_list)
+    else:
+        print("Invalid data format from get_sheet_data()")
+        return
+        
+    students = parse_students(headers, rows_data)
 
     print(f"Fetched {len(students)} valid survey responses.")
     if not students:
         return
 
+    # Use original team formation algorithm
     teams = form_teams(students)
-    print_teams(teams)
     
-    # Export results to Google Sheets
-    print("\n=== Exporting to Google Sheets ===")
-    success = write_team_results(teams, "Team Matching Results")
+    # --- Feature 9: Interactive Manual TUI adjustments ---
     
-    if success:
-        print("✅ Successfully exported team matching results to Google Sheets!")
-    else:
-        print("❌ Failed to export results to Google Sheets.")
-        print("Please check your Google Sheets credentials and permissions.")
+    # Convert teams format for TUI
+    team_lists = [team["members"] for team in teams]
+    
+    # Check if interactive mode is enabled
+    import sys
+    interactive_mode = "--interactive" in sys.argv or "-i" in sys.argv
+    
+    if interactive_mode:
+        # Run full interactive TUI
+        print("\n🎯 INTERACTIVE WORKFLOW ACTIVATED:")
+        print("\nIn interactive mode, faculty can use commands like:")
+        print("  • 'l' to list teams")
+        print("  • 'm' to move students")
+        print("  • 's' to show scores") 
+        print("  • 'w' to check warnings")
+        print("  • 'd' to finalize and export")
+        print("  • 'q' to quit without saving")
+        print(" ")
+        print("Curent Groups and AI-Computed Compatibility Scores:")
+        print(" ")
+        should_export = interactive_loop(teams, team_lists)
 
+    else:
+        # Demo mode - show capabilities without interactive input
+        print("\n🎯 INTERACTIVE WORKFLOW NOT ACTIVATED:")
+        print("To enable full interactive mode, run: python3 src/main.py --interactive")
+        
+        # Simulate the workflow
+        print("\n📋 Current teams with AI compatibility scores:")
+        from tui import list_teams, recalc_scores, warn_low_scores
+        scores = recalc_scores(team_lists)
+        print(list_teams(team_lists, scores))
+        
+        # Check for warnings
+        warnings = warn_low_scores(team_lists, scores)
+        if warnings:
+            print("\n⚠️  Compatibility Warnings:")
+            for w in warnings:
+                print(f"   {w}")
+        else:
+            print("\n✅ No compatibility warnings - all teams look good!")
+        
+        # Simulate finalizing
+        should_export = True  # Simulate faculty choosing to export
+    
+    if should_export:
+        # Convert back to original format for export
+        final_teams = []
+        for i, team_list in enumerate(team_lists):
+            final_teams.append({
+                "compatibility": teams[i]["compatibility"],
+                "members": team_list,
+                "project": teams[i]["project"]
+            })
+
+        # After adjustments, print final and write results
+        print("\n" + "="*50)
+        print("📊 FINAL TEAM ASSIGNMENTS")
+        print("="*50)
+        print_teams(final_teams)
+
+        # Export results to Google Sheets
+        print("\n=== Exporting to Google Sheets ===")
+        success = write_team_results(final_teams, "Team Matching Results")
+        
+        if success:
+            print("✅ Successfully exported team matching results to Google Sheets!")
+            print("📋 Faculty can now view the results in the 'Team Matching Results' sheet.")
+        else:
+            print("❌ Failed to export results to Google Sheets.")
+            print("Please check your Google Sheets credentials and permissions.")
+    else:
+        print("\n👋 Exiting without exporting changes.")
 
 if __name__ == "__main__":
     main()
